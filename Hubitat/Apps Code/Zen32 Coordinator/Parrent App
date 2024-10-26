@@ -1,0 +1,78 @@
+definition(
+    name: "Simple Zen32 Button LED and Device Sync",  // Name of the app
+    namespace: "UltronOfSpace",  // Namespace for the app
+    author: "Ultoniumus Of Space",  // Author of the app
+    description: "Synchronizes Z32 LED states to end devices",  // Description of app functionality
+    category: "Convenience",  // Category of the app
+    iconUrl: "",  // URL for app icon (if any)
+    iconX2Url: ""  // URL for high-resolution app icon (if any)
+)
+
+// Preferences section for user settings
+preferences {
+    page(name: "mainPage")  // Define the main page of preferences
+}
+
+// Dynamic page for main settings
+def mainPage() {
+    dynamicPage(name: "mainPage", title: "Zen32 Button LED Sync", install: true, uninstall: true) {
+        section("Simple Zen32 Button LED and Device Sync") {  // Section header for app settings
+            app(
+                name: "childApps1",  // Name for the child app input
+                appName: "Simple Zen32 Button LED and Device Sync Child App",  // Title for the child app
+                namespace: "UltronOfSpace",  // Namespace for the child app
+                title: "Create New Zen32 Child App",  // Prompt for creating new child app
+                submitOnChange: true,  // Submit settings on change
+                multiple: true  // Allow multiple instances of child app
+            )
+        }
+    }
+}
+
+// Called when the app is installed
+def installed() {
+    initialize()  // Initialize app settings and subscriptions
+}
+
+// Called when the app is updated
+def updated() {
+    unsubscribe()  // Unsubscribe from all events before updating
+    initialize()  // Re-initialize settings and subscriptions
+}
+
+// Initialize app settings and log child apps
+def initialize() {
+    log.debug "There are ${childApps.size()} child apps."  // Log the number of child apps
+    childApps.each { child ->  // Iterate through each child app
+        log.debug "Child app: ${child.label}"  // Log the label of each child app
+    }
+}
+
+// Checks for endless looping in child apps (max iterations are 4)
+def checkSlavesExist(def slaves, def master, int iterations) {
+    // If no child apps exist for the current parent app
+    if (childApps.isEmpty()) {
+        // Return true if the master is in slaves and iterations are positive
+        return slaves.contains(master) && iterations > 0
+    }
+
+    // Iterate through each child app
+    for (child in childApps) {
+        // Check against each slave
+        for (slave in slaves) {
+            // If the child's master ID matches the slave or matches the master
+            if (child.getMasterId() == slave || master == slave) {
+                log.debug "Master Child: ${child.getMasterId()}, Master: ${master}, Slave: ${slave}"  // Log details
+                // If iterations are zero, return true (end condition)
+                if (iterations <= 0) {
+                    return true
+                } else {
+                    log.warn "Iterations remaining: ${iterations}"  // Log remaining iterations
+                    // Recursively check for slaves with decremented iterations
+                    return checkSlavesExist(slaves, master, iterations - 1)
+                }
+            }
+        }
+    }
+    return false  // Return false if no slaves found
+}
