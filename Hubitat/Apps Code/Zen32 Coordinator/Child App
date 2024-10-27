@@ -1,145 +1,78 @@
 definition(
-    name: "Simple Zen32 Button LED and Device Sync Child App",
-    namespace: "UltronOfSpace",
-    parent: "UltronOfSpace:Simple Zen32 Button LED and Device Sync",
-    author: "Ultoniumus Of Space",
-    description: "Synchronizes Z32 LED states to end devices",
-    category: "Convenience",
-    iconUrl: "",
-    iconX2Url: ""
+    name: "Simple Zen32 Button LED and Device Sync",  // Name of the app
+    namespace: "UltronOfSpace",  // Namespace for the app
+    author: "Ultonumus Of Space",  // Author of the app
+    description: "Synchronizes Z32 LED states to end devices",  // Description of app functionality
+    category: "Convenience",  // Category of the app
+    iconUrl: "",  // URL for app icon (if any)
+    iconX2Url: ""  // URL for high-resolution app icon (if any)
 )
 
+// Preferences section for user settings
 preferences {
-    section("<h1>Zooz Zen32 Selection<h1>") {
-        paragraph "Select the Zooz Zen32 device you want to use"
-        input name: "ZoozZen32", type: "capability.pushableButton", title: "Zooz Zen32 Device", multiple: false
-    }
-    
-    section("<h1>Options to Set All Buttons<h1>") {
-        paragraph "Use the options below to set a single color or brightness for all buttons. This will override individual button selections."
-        
-        input name: "setAllOnColor", type: "enum", title: "Set All Buttons LED Color When ON", options: ["red", "white", "blue"], required: false
-        input name: "setAllOffColor", type: "enum", title: "Set All Buttons LED Color When OFF", options: ["red", "white", "blue"], required: false
-        
-        input name: "setAllOnBrightness", type: "enum", title: "Set All Buttons LED Brightness When ON", options: [30, 60, 100], required: false
-        input name: "setAllOffBrightness", type: "enum", title: "Set All Buttons LED Brightness When OFF", options: [30, 60, 100], required: false
-    }
+    page(name: "mainPage")  // Define the main page of preferences
+}
 
-    section("<h1>Sync Device Selection<h1>") {
-        paragraph "Select the devices to sync each button to. Single Device Selection only. Only one device or device group can be selected per button."
-
-        // Define common color options
-        def colorOptions = ["red", "white", "blue"]
-        // Define brightness options
-        def brightnessOptions = [30, 60, 100]
-
-        for (int i = 1; i <= 5; i++) {
-            paragraph "<h2> Button $i <h2>"
-            input name: "Button${i}SyncToDevice", type: "capability.switch", title: "Synchronize Button $i LED to this Device or Group State", multiple: false
-
-            paragraph "<h3> When ON <h3>"
-            input name: "Button${i}LEDOnColor", type: "enum", title: "Select the color for the LED when sync device is ON", required: true, defaultValue: "white", options: colorOptions
-            input name: "Button${i}LEDOnBrightness", type: "enum", title: "Select the brightness for the LED when sync device is ON", required: true, defaultValue: 100, options: brightnessOptions
-
-            paragraph "<h3> When OFF <h3>"
-            input name: "Button${i}LEDOffColor", type: "enum", title: "Select the color for the LED when sync device is OFF", required: true, defaultValue: "blue", options: colorOptions
-            input name: "Button${i}LEDOffBrightness", type: "enum", title: "Select the brightness for the LED when sync device is OFF", required: true, defaultValue: 100, options: brightnessOptions
+// Dynamic page for main settings
+def mainPage() {
+    dynamicPage(name: "mainPage", title: "Zen32 Button LED Sync", install: true, uninstall: true) {
+        section("Simple Zen32 Button LED and Device Sync") {  // Section header for app settings
+            app(
+                name: "childApps1",  // Name for the child app input
+                appName: "Simple Zen32 Button LED and Device Sync Child App",  // Title for the child app
+                namespace: "UltronOfSpace",  // Namespace for the child app
+                title: "Create New Zen32 Child App",  // Prompt for creating new child app
+                submitOnChange: true,  // Submit settings on change
+                multiple: true  // Allow multiple instances of child app
+            )
         }
     }
 }
 
+// Called when the app is installed
 def installed() {
-    log.debug "Installed"
-    subscribeToButtons()
-    updateDeviceLEDs() // Update the LED states upon installation
+    initialize()  // Initialize app settings and subscriptions
 }
 
+// Called when the app is updated
 def updated() {
-    log.debug "Updated"
-    unsubscribe() // Unsubscribe from old events before subscribing to new ones
-    subscribeToButtons()
-    updateDeviceLEDs() // Update the LED states with new settings
+    unsubscribe()  // Unsubscribe from all events before updating
+    initialize()  // Re-initialize settings and subscriptions
 }
 
-def uninstalled() {}
-
-def subscribeToButtons() {
-    for (int i = 1; i <= 5; i++) {
-        def device = settings."Button${i}SyncToDevice"
-        if (device) {
-            log.debug "Subscribing to device ${device} for Button $i"
-            subscribe(device, "switch", "Button${i}SyncHandler")
-        } else {
-            log.warn "Button $i sync device is not selected."
-        }
+// Initialize app settings and log child apps
+def initialize() {
+    log.debug "There are ${childApps.size()} child apps."  // Log the number of child apps
+    childApps.each { child ->  // Iterate through each child app
+        log.debug "Child app: ${child.label}"  // Log the label of each child app
     }
 }
 
-def updateDeviceLEDs() {
-    for (int i = 1; i <= 5; i++) {
-        def syncDevice = settings."Button${i}SyncToDevice"
-        if (syncDevice) {
-            def onColor = settings."Button${i}LEDOnColor"
-            def offColor = settings."Button${i}LEDOffColor"
-            def brightness = settings."Button${i}LEDOnBrightness"
+// Checks for endless looping in child apps (max iterations are 4)
+def checkSlavesExist(def slaves, def master, int iterations) {
+    // If no child apps exist for the current parent app
+    if (childApps.isEmpty()) {
+        // Return true if the master is in slaves and iterations are positive
+        return slaves.contains(master) && iterations > 0
+    }
 
-            // Check for global settings first
-            if (settings.setAllOnColor) {
-                onColor = settings.setAllOnColor
+    // Iterate through each child app
+    for (child in childApps) {
+        // Check against each slave
+        for (slave in slaves) {
+            // If the child's master ID matches the slave or matches the master
+            if (child.getMasterId() == slave || master == slave) {
+                log.debug "Master Child: ${child.getMasterId()}, Master: ${master}, Slave: ${slave}"  // Log details
+                // If iterations are zero, return true (end condition)
+                if (iterations <= 0) {
+                    return true
+                } else {
+                    log.warn "Iterations remaining: ${iterations}"  // Log remaining iterations
+                    // Recursively check for slaves with decremented iterations
+                    return checkSlavesExist(slaves, master, iterations - 1)
+                }
             }
-            if (settings.setAllOnBrightness) {
-                brightness = settings.setAllOnBrightness as Integer
-            }
-            // Update the LED for ON state
-            log.debug "Updating LED for Button $i to ON color: ${onColor} with brightness: ${brightness}"
-            ZoozZen32.setLED(i, onColor, brightness)
-
-            if (settings.setAllOffColor) {
-                offColor = settings.setAllOffColor
-            }
-            if (settings.setAllOffBrightness) {
-                brightness = settings.setAllOffBrightness as Integer
-            }
-            // Update the LED for OFF state
-            log.debug "Updating LED for Button $i to OFF color: ${offColor} with brightness: ${brightness}"
-            ZoozZen32.setLED(i, offColor, brightness)
         }
     }
+    return false  // Return false if no slaves found
 }
-
-def ButtonSyncHandler(int buttonIndex, evt) {
-    log.debug "Button${buttonIndex}SyncHandler triggered with event value: ${evt.value}"
-
-    // Get individual button settings
-    def onColor = settings."Button${buttonIndex}LEDOnColor"
-    def offColor = settings."Button${buttonIndex}LEDOffColor"
-    def brightness = settings."Button${buttonIndex}LEDOnBrightness"
-
-    // Check for global settings first
-    if (evt.value == "on") {
-        if (settings.setAllOnColor) {
-            onColor = settings.setAllOnColor
-        }
-        if (settings.setAllOnBrightness) {
-            brightness = settings.setAllOnBrightness as Integer
-        }
-        log.debug "Setting LED for Button $buttonIndex to ON color: ${onColor} with brightness: ${brightness}"
-        ZoozZen32.setLED(buttonIndex, onColor, brightness) // Ensure brightness is Integer
-    } else if (evt.value == "off") {
-        if (settings.setAllOffColor) {
-            offColor = settings.setAllOffColor
-        }
-        if (settings.setAllOffBrightness) {
-            brightness = settings.setAllOffBrightness as Integer
-        }
-        log.debug "Setting LED for Button $buttonIndex to OFF color: ${offColor} with brightness: ${brightness}"
-        ZoozZen32.setLED(buttonIndex, offColor, brightness) // Ensure brightness is Integer
-    }
-}
-
-// Create separate handlers for each button
-def Button1SyncHandler(evt) { ButtonSyncHandler(1, evt) }
-def Button2SyncHandler(evt) { ButtonSyncHandler(2, evt) }
-def Button3SyncHandler(evt) { ButtonSyncHandler(3, evt) }
-def Button4SyncHandler(evt) { ButtonSyncHandler(4, evt) }
-def Button5SyncHandler(evt) { ButtonSyncHandler(5, evt) }
