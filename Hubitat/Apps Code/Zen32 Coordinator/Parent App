@@ -1,11 +1,13 @@
 definition(
     name: "Simple Zen32 Button LED and Device Sync",  // Name of the app
     namespace: "UltronOfSpace",  // Namespace for the app
-    author: "Ultonumus Of Space",  // Author of the app
+    author: "Ultronumus Of Space",  // Author of the app
     description: "Synchronizes Z32 LED states to end devices",  // Description of app functionality
     category: "Convenience",  // Category of the app
     iconUrl: "",  // URL for app icon (if any)
-    iconX2Url: ""  // URL for high-resolution app icon (if any)
+    iconX2Url: "",  // URL for high-resolution app icon (if any)
+    singleInstance: true    
+
 )
 
 // Preferences section for user settings
