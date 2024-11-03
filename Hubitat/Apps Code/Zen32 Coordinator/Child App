@@ -2,7 +2,7 @@ definition(
     name: "Simple Zen32 Button LED and Device Sync Child App",
     namespace: "UltronOfSpace",
     parent: "UltronOfSpace:Simple Zen32 Button LED and Device Sync",
-    author: "Ultoniumus Of Space",
+    author: "Ultronumus Of Space",
     description: "Synchronizes Z32 LED states to end devices",
     category: "Convenience",
     iconUrl: "",
@@ -14,11 +14,28 @@ preferences {
 }
 
 def mainPage() {
-    dynamicPage(name: "mainPage", title: "Zooz Zen32 Button LED Sync Settings", install: true, uninstall: true) {
+    dynamicPage(name: "mainPage", install: true, uninstall: true) {
+    section {
+            paragraph "<h2>Ultron Of Space Loves You!</h2>"
+            paragraph "<div><img src='https://raw.githubusercontent.com/rdstov/UltronOfSpace/main/UltonOfSpaceIcon.jpg' style='width:100px;height:auto;float:left;margin-right:10px;'/>This app helps you synchronize LED colors and states for your Zen32 buttons.<br><br>Configure your settings below.</div>"
+        }
+        
+        
+        
+        
+        
+        
+    
         section("<h1>Zooz Zen32 Selection</h1>") {
             paragraph "Select the Zooz Zen32 device you want to use"
-            input name: "ZoozZen32", type: "capability.pushableButton", title: "Zooz Zen32 Device", multiple: false
+            input name: "ZoozZen32", type: "device.ZoozSceneController(ZEN32)", title: "Zooz Zen32 Device", multiple: false
         }
+
+
+
+
+
+
         
         section("<h1>Global vs Individual Settings</h1>") {
             paragraph "Choose whether to use global settings for all buttons or the individual settings for each button."
@@ -27,13 +44,14 @@ def mainPage() {
 
         if (useGlobalSettings) {
             section("<h1>Options to Set All Buttons</h1>") {
-                paragraph "Use the options below to set a single color or brightness for all buttons. This will override individual button selections."
-                
-                input name: "setAllOnColor", type: "enum", title: "Set All Buttons LED Color When ON", options: ["red", "white", "blue"], required: false
-                input name: "setAllOffColor", type: "enum", title: "Set All Buttons LED Color When OFF", options: ["red", "white", "blue"], required: false
-                
-                input name: "setAllOnBrightness", type: "enum", title: "Set All Buttons LED Brightness When ON", options: [30, 60, 100], required: false
-                input name: "setAllOffBrightness", type: "enum", title: "Set All Buttons LED Brightness When OFF", options: [30, 60, 100], required: false
+                paragraph "Use the options below to set a single color or brightness for all buttons based on its sync device state (On or Off)."
+                paragraph "This will override individual button selections."
+                    paragraph "<h3> When device synced to the button is ON </h3>"
+                        input name: "setAllOnColor", type: "enum", title: "LED Color will be...", options: ["red", "white", "blue"], required: false
+                        input name: "setAllOnBrightness", type: "enum", title: "LED Brightness will be...", options: [30, 60, 100], required: false
+                    paragraph "<h3> When device synced to the button is OFF </h3>"
+                        input name: "setAllOffColor", type: "enum", title: "LED Color will be...", options: ["red", "white", "blue"], required: false
+                        input name: "setAllOffBrightness", type: "enum", title: "LED Brightness will be...", options: [30, 60, 100], required: false
             }
         }
 
@@ -46,17 +64,17 @@ def mainPage() {
             def brightnessOptions = [30, 60, 100]
 
             for (int i = 1; i <= 5; i++) {
-                paragraph "<h2> Button $i </h2>"
+                paragraph "<div style='display:flex; align-items:center;'><img src='https://raw.githubusercontent.com/rdstov/UltronOfSpace/refs/heads/main/Hubitat/Apps%20Code/Zen32%20Coordinator/Images/Zen32_Btn${i}.png' style='width:200px;height:auto;margin-right:10px;'/> <h2>Button $i</h2></div>"
                 input name: "Button${i}SyncToDevice", type: "capability.switch", title: "Synchronize Button $i LED to this Device or Group State", multiple: false
 
                 if (!useGlobalSettings) {
                     paragraph "<h3> When ON </h3>"
-                    input name: "Button${i}LEDOnColor", type: "enum", title: "Select the color for the LED when sync device is ON", required: true, defaultValue: "white", options: colorOptions
-                    input name: "Button${i}LEDOnBrightness", type: "enum", title: "Select the brightness for the LED when sync device is ON", required: true, defaultValue: 100, options: brightnessOptions
+                        input name: "Button${i}LEDOnColor", type: "enum", title: "Select the color for the LED when sync device is ON", required: true, defaultValue: "white", options: colorOptions
+                        input name: "Button${i}LEDOnBrightness", type: "enum", title: "Select the brightness for the LED when sync device is ON", required: true, defaultValue: 100, options: brightnessOptions
 
                     paragraph "<h3> When OFF </h3>"
-                    input name: "Button${i}LEDOffColor", type: "enum", title: "Select the color for the LED when sync device is OFF", required: true, defaultValue: "blue", options: colorOptions
-                    input name: "Button${i}LEDOffBrightness", type: "enum", title: "Select the brightness for the LED when sync device is OFF", required: true, defaultValue: 100, options: brightnessOptions
+                        input name: "Button${i}LEDOffColor", type: "enum", title: "Select the color for the LED when sync device is OFF", required: true, defaultValue: "blue", options: colorOptions
+                        input name: "Button${i}LEDOffBrightness", type: "enum", title: "Select the brightness for the LED when sync device is OFF", required: true, defaultValue: 100, options: brightnessOptions
                 }
             }
         }
