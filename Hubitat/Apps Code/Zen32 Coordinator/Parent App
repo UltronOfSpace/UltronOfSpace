@@ -6,7 +6,7 @@ definition(
     category: "Convenience",  // Category of the app
     iconUrl: "",  // URL for app icon (if any)
     iconX2Url: "",  // URL for high-resolution app icon (if any)
-    singleInstance: true    
+    singleInstance: true  // Only a single instance of the parent app is allowed
 
 )
 
