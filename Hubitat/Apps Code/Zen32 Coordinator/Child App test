@@ -1,0 +1,238 @@
+definition(
+    name: "Simple Zen32 Button LED and Device Sync Child App",
+    namespace: "UltronOfSpace",
+    parent: "UltronOfSpace:Simple Zen32 Button LED and Device Sync",
+    author: "Ultronumus Of Space",
+    description: "Synchronizes Z32 LED states to end devices",
+    category: "Convenience",
+    iconUrl: "",
+    iconX2Url: ""
+)
+
+preferences {
+    page(name: "mainPage", install: true, uninstall: true)  // Ensures that the modes option is not shown
+}
+
+def mainPage() {
+    dynamicPage(name: "mainPage", install: true, uninstall: true) {
+section {
+    paragraph "<h1 style='text-align: center;'>This app helps you synchronize LED colors and states for your Zen32 buttons.</h1>"
+    paragraph "<div style='display:flex; align-items:center; justify-content: center;'><img src='https://raw.githubusercontent.com/rdstov/UltronOfSpace/refs/heads/main/Hubitat/Apps%20Code/Zen32%20Coordinator/Images/Zen32_Btns.png' style='width:200px;height:auto;margin-right:10px;'/> <h1>Configure your settings below</h1></div>"
+}
+    
+        section("<h1>Zooz Zen32 Selection</h1>") {
+            paragraph "Select the Zooz Zen32 device you want to use"
+            input name: "ZoozZen32", type: "device.ZoozSceneController(ZEN32)", title: "Zooz Zen32 Device", multiple: false
+        }
+
+        section("<h1>Global vs Individual Settings</h1>") {
+            paragraph "Choose whether to use global settings for all buttons or the individual settings for each button."
+            input name: "useGlobalSettings", type: "bool", title: "Use Global Settings for All Buttons?", defaultValue: false, submitOnChange: true
+        }
+
+        if (useGlobalSettings) {
+            section("<h1>Options to Set All Buttons</h1>") {
+                paragraph "Use the options below to set a single color or brightness for all buttons based on its sync device state (On or Off)."
+                paragraph "This will override individual button selections."
+                    paragraph "<h3> When device synced to the button is ON </h3>"
+                        input name: "setAllOnColor", type: "enum", title: "LED Color will be...", options: ["red", "white", "blue"], required: false
+                        input name: "setAllOnBrightness", type: "enum", title: "LED Brightness will be...", options: [30, 60, 100], required: false
+                    paragraph "<h3> When device synced to the button is OFF </h3>"
+                        input name: "setAllOffColor", type: "enum", title: "LED Color will be...", options: ["red", "white", "blue"], required: false
+                        input name: "setAllOffBrightness", type: "enum", title: "LED Brightness will be...", options: [30, 60, 100], required: false
+            }
+        }
+
+section("<h1>Sync Device Selection</h1>") {
+    paragraph "Select the devices to sync each button to. Single Device Selection only. Only one device or device group can be selected per button."
+
+    // Define common color options
+    def colorOptions = ["red", "white", "blue"]
+    // Define brightness options
+    def brightnessOptions = [30, 60, 100]
+    // Define action options for button press
+    def actionOptions = ["Toggle", "Switch On", "Switch Off"]
+    // Define available button action types
+    def availableActions = ["Held", "Double-Tapped", "Released"]
+
+    for (int i = 1; i <= 5; i++) {
+        paragraph "<div style='display:flex; align-items:center;'><img src='https://raw.githubusercontent.com/rdstov/UltronOfSpace/refs/heads/main/Hubitat/Apps%20Code/Zen32%20Coordinator/Images/Zen32_Btn${i}.png' style='width:200px;height:auto;margin-right:10px;'/> <h1>Button $i</h1></div>"
+        input name: "Button${i}SyncToDevice", type: "capability.switch", title: "Synchronize Button $i LED to this Device or Group State", multiple: false
+
+        input name: "Button${i}Action", type: "enum", title: "Select the action when the button is pressed", required: false, defaultValue: null, options: actionOptions
+    
+        input name: "Button${i}SelectedActions", type: "enum", title: "Select additional button actions to configure for Button ${i}", multiple: true, required: false, options: availableActions, submitOnChange: true
+    
+    
+
+        if (settings["Button${i}SelectedActions"]?.contains("Held")) {
+            paragraph "<H2>Button ${i} Held</H2>"            
+            input name: "Button${i}HeldDevice", type: "capability.switch", title: "Select device to control when you HOLD Button ${i}", multiple: false, required: true, submitOnChange: true
+            input name: "Button${i}HeldAction", type: "enum", title: "Select the action when button${i} is held", required: true, defaultValue: null, options: actionOptions
+
+        }
+        if (!settings["Button${i}SelectedActions"]?.contains("Held")) {
+            app.removeSetting("Button${i}HeldDevice")
+        }
+
+        if (settings["Button${i}SelectedActions"]?.contains("Double-Tapped")) {
+            paragraph "<H2>Button ${i} Double-Tapped</H2>"
+            input name: "Button${i}DoubleTappedDevice", type: "capability.switch", title: "Select device to control when you DOUBLE-TAP Button ${i}", multiple: false, required: true, submitOnChange: true
+            input name: "Button${i}DoubleTappedAction", type: "enum", title: "Select the action when the button${i} is double-tapped", required: true, defaultValue: null, options: actionOptions
+        }
+        if (!settings["Button${i}SelectedActions"]?.contains("Double-Tapped")) {
+            app.removeSetting("Button${i}DoubleTappedDevice")
+        }
+
+        if (settings["Button${i}SelectedActions"]?.contains("Released")) {
+            paragraph "<H2>Button${i} Released</H2>"                 
+            input name: "Button${i}ReleasedDevice", type: "capability.switch", title: "Select device to control when you RELEASE Button ${i}", multiple: false, required: true, submitOnChange: true
+            input name: "Button${i}ReleasedAction", type: "enum", title: "Select the action when the button${i} is released", required: true, defaultValue: null, options: actionOptions
+        }
+        if (!settings["Button${i}SelectedActions"]?.contains("Released")) {
+            app.removeSetting("Button${i}ReleasedDevice")
+        }
+
+        if (!useGlobalSettings) {
+            paragraph "<h3> When ON </h3>"
+            input name: "Button${i}LEDOnColor", type: "enum", title: "Select the color for the LED when sync device is ON", required: true, defaultValue: "white", options: colorOptions
+            input name: "Button${i}LEDOnBrightness", type: "enum", title: "Select the brightness for the LED when sync device is ON", required: true, defaultValue: 100, options: brightnessOptions
+
+            paragraph "<h3> When OFF </h3>"
+            input name: "Button${i}LEDOffColor", type: "enum", title: "Select the color for the LED when sync device is OFF", required: true, defaultValue: "blue", options: colorOptions
+            input name: "Button${i}LEDOffBrightness", type: "enum", title: "Select the brightness for the LED when sync device is OFF", required: true, defaultValue: 100, options: brightnessOptions
+        }
+    }
+}
+ section {
+    paragraph "<h1 style='text-align: center;'>Ultron Of Space Loves You!</h1>"
+    paragraph "<div style='text-align: center;'><img src='https://raw.githubusercontent.com/rdstov/UltronOfSpace/main/UltonOfSpaceIcon.jpg' style='width:300px;height:auto;margin: 0 auto;' /></div>"
+}
+
+    }
+}
+
+// Method to synchronize individual button settings with global settings
+def synchronizeButtonSettings() {
+    if (settings.useGlobalSettings) {
+        for (int i = 1; i <= 5; i++) {
+            def globalOnColor = settings.setAllOnColor ?: "white"
+            def globalOffColor = settings.setAllOffColor ?: "blue"
+            def globalOnBrightness = settings.setAllOnBrightness ?: 100
+            def globalOffBrightness = settings.setAllOffBrightness ?: 100
+
+            // Update settings in the app's preferences
+            app.updateSetting("Button${i}LEDOnColor", [type: "enum", value: globalOnColor])
+            app.updateSetting("Button${i}LEDOffColor", [type: "enum", value: globalOffColor])
+            app.updateSetting("Button${i}LEDOnBrightness", [type: "enum", value: globalOnBrightness])
+            app.updateSetting("Button${i}LEDOffBrightness", [type: "enum", value: globalOffBrightness])
+
+            // Store in state for persistent background tracking
+            state."Button${i}LEDOnColor" = globalOnColor
+            state."Button${i}LEDOffColor" = globalOffColor
+            state."Button${i}LEDOnBrightness" = globalOnBrightness
+            state."Button${i}LEDOffBrightness" = globalOffBrightness
+        }
+    }
+}
+
+
+// Call synchronizeButtonSettings in the updated method
+def updated() {
+    log.debug "Updated"
+    unsubscribe()
+    subscribeToButtons()
+    synchronizeButtonSettings() // Synchronize the individual settings with global ones if applicable
+    updateDeviceLEDs()
+}
+
+def installed() {
+    log.debug "Installed"
+    subscribeToButtons()
+    updateDeviceLEDs() // Update the LED states upon installation
+}
+
+
+def uninstalled() {}
+
+def subscribeToButtons() {
+    for (int i = 1; i <= 5; i++) {
+        def device = settings."Button${i}SyncToDevice"
+        if (device) {
+            log.debug "Subscribing to device ${device} for Button $i"
+            subscribe(device, "switch", "Button${i}SyncHandler")
+        } else {
+            log.warn "Button $i sync device is not selected."
+        }
+    }
+}
+
+def updateDeviceLEDs() {
+    boolean useGlobal = settings.useGlobalSettings ?: false // Default to false if not set
+
+    for (int i = 1; i <= 5; i++) {
+        def syncDevice = settings."Button${i}SyncToDevice"
+        if (syncDevice) {
+            // Get the current state of the synchronized device
+            def deviceState = syncDevice.currentValue("switch")
+            log.debug "Button $i - Device state is: ${deviceState}"
+
+            // Determine the LED settings based on the useGlobal flag
+            def onColor = useGlobal ? settings.setAllOnColor : settings."Button${i}LEDOnColor"
+            def offColor = useGlobal ? settings.setAllOffColor : settings."Button${i}LEDOffColor"
+            def onBrightness = useGlobal ? (settings.setAllOnBrightness as Integer) : settings."Button${i}LEDOnBrightness"
+            def offBrightness = useGlobal ? (settings.setAllOffBrightness as Integer) : settings."Button${i}LEDOffBrightness"
+
+            if (deviceState == "on") {
+                // Update the LED for the ON state
+                log.debug "Setting LED for Button $i to ON color: ${onColor} with brightness: ${onBrightness}"
+                ZoozZen32.setLED(i, onColor, onBrightness)
+            } else if (deviceState == "off") {
+                // Update the LED for the OFF state
+                log.debug "Setting LED for Button $i to OFF color: ${offColor} with brightness: ${offBrightness}"
+                ZoozZen32.setLED(i, offColor, offBrightness)
+            }
+        } else {
+            log.warn "Button $i sync device is not selected."
+        }
+    }
+}
+
+
+
+def ButtonSyncHandler(int buttonIndex, evt) {
+    log.debug "Button${buttonIndex}SyncHandler triggered with event value: ${evt.value}"
+
+    // Get individual button settings
+    def onColor = settings."Button${buttonIndex}LEDOnColor"
+    def offColor = settings."Button${buttonIndex}LEDOffColor"
+    def brightness = settings."Button${buttonIndex}LEDOnBrightness"
+
+    // Check for global settings first
+    if (evt.value == "on") {
+        if (settings.setAllOnColor) {
+            onColor = settings.setAllOnColor
+        }
+        if (settings.setAllOnBrightness) {
+            brightness = settings.setAllOnBrightness as Integer
+        }
+        log.debug "Setting LED for Button $buttonIndex to ON color: ${onColor} with brightness: ${brightness}"
+        ZoozZen32.setLED(buttonIndex, onColor, brightness) // Ensure brightness is Integer
+    } else if (evt.value == "off") {
+        if (settings.setAllOffColor) {
+            offColor = settings.setAllOffColor
+        }
+        if (settings.setAllOffBrightness) {
+            brightness = settings.setAllOffBrightness as Integer
+        }
+        log.debug "Setting LED for Button $buttonIndex to OFF color: ${offColor} with brightness: ${brightness}"
+        ZoozZen32.setLED(buttonIndex, offColor, brightness) // Ensure brightness is Integer
+    }
+}
+
+// Create separate handlers for each button
+def Button1SyncHandler(evt) { ButtonSyncHandler(1, evt) }
+def Button2SyncHandler(evt) { ButtonSyncHandler(2, evt) }
+def Button3SyncHandler(evt) { ButtonSyncHandler(3, evt) }
+def Button4SyncHandler(evt) { ButtonSyncHandler(4, evt) }
+def Button5SyncHandler(evt) { ButtonSyncHandler(5, evt) }
